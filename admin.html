@@ -645,12 +645,16 @@ function delItemById(id) {
   render();
 }
 
-function togglePaidById(id, checked) {
+async function togglePaidById(id, checked) {
   const target = data.find(d => d.id === id);
   if (!target) return;
+
   target.paid = checked;
   toggleDirty(true);
   render();
+
+  await save();
+  await load();
 }
 
 function startEdit(id) {
