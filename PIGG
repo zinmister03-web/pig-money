@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小豬沒錢日記 - 管理</title>
+
+<style>
+body {
+  margin:0;
+  font-family:Arial;
+  background:#f6f3ef;
+}
+
+.wrap {
+  max-width:800px;
+  margin:auto;
+  padding:15px;
+}
+
+.hero {
+  background:#fff;
+  border-radius:16px;
+  padding:15px;
+  margin-bottom:15px;
+}
+
+.hero-top {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+button {
+  padding:8px 12px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+.btn-main { background:#ff7aa2; color:white; }
+.btn-del { background:#ff4d4d; color:white; }
+
+.hidden { display:none; }
+
+input,select {
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  width:100%;
+}
+
+.form {
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
+
+.card {
+  background:#fff;
+  border-radius:16px;
+  padding:15px;
+  margin-top:15px;
+}
+
+.item {
+  display:flex;
+  justify-content:space-between;
+  padding:10px;
+  border-bottom:1px solid #eee;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<div class="hero">
+  <div class="hero-top">
+    <h2>🐷 管理頁</h2>
+    <button onclick="toggle()">收起</button>
+  </div>
+
+  <div id="top">
+    <div>總筆數：<span id="count">0</span></div>
+    <div>總額：$<span id="total">0</span></div>
+
+    <div class="form">
+      <input id="name" placeholder="名稱">
+      <input id="money" type="number" placeholder="金額">
+      <select id="type">
+        <option>商品</option>
+        <option>匯款</option>
+        <option>其他</option>
+      </select>
+      <button class="btn-main" onclick="add()">新增</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div id="list"></div>
+</div>
+
+</div>
+
+<script>
+
+const API = "https://script.google.com/macros/s/AKfycbwahAiG7COCHfCOITf1XoIWKdL-pWHLvYlmMxPEDrlndD8r3pxTQupZQKboOklVCfA3jQ/exec";
+const PASSWORD = "12345678";
+
+let data = [];
+
+function toggle(){
+  document.getElementById("top").classList.toggle("hidden");
+}
+
+async function load(){
+  let res = await fetch(API+"?action=get");
+  let json = await res.json();
+  data = json.items || [];
+  render();
+}
+
+function render(){
+  let list = document.getElementById("list");
+  list.innerHTML = "";
+
+  let total = 0;
+
+  data.forEach((d,i)=>{
+    total += d.amount;
+
+    list.innerHTML += `
+    <div class="item">
+      <div>
+        ${d.name} (${d.type})
+      </div>
+      <div>
+        $${d.amount}
+        <button onclick="del(${i})">刪</button>
+      </div>
+    </div>
+    `;
+  });
+
+  document.getElementById("count").innerText = data.length;
+  document.getElementById("total").innerText = total;
+}
+
+async function add(){
+  let name = document.getElementById("name").value;
+  let money = Number(document.getElementById("money").value);
+  let type = document.getElementById("type").value;
+
+  if(!name) return alert("填名稱");
+
+  data.unshift({
+    id: Date.now(),
+    name,
+    amount: money,
+    type,
+    createdAt: Date.now()
+  });
+
+  await save();
+  load();
+}
+
+async function del(i){
+  data.splice(i,1);
+  await save();
+  load();
+}
+
+async function save(){
+  await fetch(API,{
+    method:"POST",
+    body: JSON.stringify({
+      action:"save",
+      password:PASSWORD,
+      items:data
+    })
+  });
+}
+
+load();
+
+</script>
+
+</body>
+</html>
