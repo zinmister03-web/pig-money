@@ -10,10 +10,11 @@ body {
   margin: 0;
   font-family: Arial, sans-serif;
   background: #f6f3ef;
+  color: #3d3028;
 }
 
 .wrap {
-  max-width: 900px;
+  max-width: 980px;
   margin: auto;
   padding: 15px;
 }
@@ -36,17 +37,22 @@ body {
 .hero-btns {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 button {
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: none;
   border-radius: 10px;
   cursor: pointer;
+  font-weight: bold;
 }
 
 .btn-main { background: #ff7aa2; color: white; }
 .btn-del { background: #ff4d4d; color: white; }
+.btn-edit { background: #ffc94d; color: #4a3600; }
+.btn-save { background: #47b36b; color: white; }
+.btn-cancel { background: #ddd; color: #333; }
 
 .hidden { display: none; }
 
@@ -55,13 +61,14 @@ input, select {
   border-radius: 10px;
   border: 1px solid #ccc;
   width: 100%;
+  font-size: 15px;
 }
 
 .form {
   display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr auto auto;
+  grid-template-columns: 1.2fr 0.8fr 0.8fr 1fr 0.9fr auto;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 12px;
   align-items: center;
 }
 
@@ -72,35 +79,64 @@ input, select {
   margin-top: 15px;
 }
 
-.item {
+.section-block + .section-block {
+  margin-top: 22px;
+}
+
+.section-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 10px;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.section-sub {
+  color: #666;
+  font-size: 14px;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 14px 10px;
   border-bottom: 1px solid #eee;
   gap: 12px;
 }
 
 .item-left {
   min-width: 0;
+  flex: 1;
 }
 
 .item-name {
   font-weight: bold;
   word-break: break-word;
+  font-size: 16px;
 }
 
 .item-sub {
   font-size: 13px;
   color: #666;
-  margin-top: 4px;
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .item-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .sync-status {
@@ -116,7 +152,6 @@ input, select {
   border-radius: 999px;
   background: #ffe8ef;
   color: #8b4d61;
-  margin-left: 8px;
 }
 
 .paid-tag {
@@ -153,7 +188,27 @@ input, select {
   color: #333;
 }
 
-/* 同步動畫 */
+.inline-edit {
+  display: grid;
+  grid-template-columns: 1.1fr 0.8fr 0.8fr 1fr 0.9fr auto auto;
+  gap: 8px;
+  width: 100%;
+  align-items: center;
+}
+
+.note-box {
+  color: #555;
+}
+
+.empty-box {
+  color: #777;
+  background: #faf7f3;
+  border: 1px dashed #e3d7cc;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+}
+
 .sync-overlay {
   position: fixed;
   inset: 0;
@@ -266,19 +321,20 @@ input, select {
   to   { transform: scale(1.15); }
 }
 
-@media (max-width: 780px){
-  .form {
+@media (max-width: 900px){
+  .form,
+  .inline-edit {
     grid-template-columns: 1fr;
   }
 
   .item {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
   .item-right {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
   }
 
   .run-track {
@@ -331,13 +387,16 @@ input, select {
           <option>匯款</option>
           <option>其他</option>
         </select>
-
+        <input id="dateInput" type="date">
         <label class="check-row">
           <input id="paidInput" type="checkbox">
           已付
         </label>
-
         <button class="btn-main" onclick="add()">新增</button>
+      </div>
+
+      <div class="form" style="grid-template-columns: 1fr;">
+        <input id="noteInput" placeholder="備註（可空白）">
       </div>
     </div>
   </div>
@@ -368,9 +427,39 @@ const PASSWORD = "12345678";
 let data = [];
 let successTimer = null;
 let dirty = false;
+let editingId = null;
 
 function toggle() {
   document.getElementById("top").classList.toggle("hidden");
+}
+
+function normalizePaid(value) {
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0 || value == null) return false;
+
+  const str = String(value).trim().toLowerCase();
+  return ['true', '1', 'yes', 'y', 'on', '已付'].includes(str);
+}
+
+function normalizeItem(item) {
+  return {
+    ...item,
+    id: item.id ?? Date.now(),
+    name: item.name || "",
+    amount: Number(item.amount || 0),
+    type: item.type || "其他",
+    note: item.note || "",
+    date: item.date || "",
+    paid: normalizePaid(item.paid),
+    createdAt: Number(item.createdAt || Date.now())
+  };
+}
+
+function toggleDirty(flag = true) {
+  dirty = flag;
+  document.getElementById("syncStatus").innerText = flag
+    ? "目前狀態：有未同步變更"
+    : "目前狀態：已同步完成";
 }
 
 function showSync(text = "小豬同步中...") {
@@ -403,12 +492,11 @@ async function load() {
     showSync("小豬正在把資料叼回來...");
     const res = await fetch(API + "?action=get");
     const json = await res.json();
-    data = (json.items || []).map(item => ({
-      ...item,
-      paid: Boolean(item.paid)
-    }));
+
+    data = (json.items || []).map(normalizeItem);
     render();
     dirty = false;
+    editingId = null;
     hideSync("目前狀態：已同步完成");
     showSuccess();
   } catch (err) {
@@ -418,43 +506,27 @@ async function load() {
 }
 
 function render() {
-  let list = document.getElementById("list");
+  const list = document.getElementById("list");
   list.innerHTML = "";
 
   let total = 0;
   let paidTotal = 0;
   let unpaidTotal = 0;
 
-  data.forEach((d, i) => {
+  const unpaidData = data.filter(d => !d.paid);
+  const paidData = data.filter(d => d.paid);
+
+  data.forEach(d => {
     const amount = Number(d.amount || 0);
     total += amount;
-    if (d.paid) {
-      paidTotal += amount;
-    } else {
-      unpaidTotal += amount;
-    }
-
-    list.innerHTML += `
-      <div class="item">
-        <div class="item-left">
-          <div class="item-name">
-            ${escapeHtml(d.name || "")}
-            <span class="badge">${escapeHtml(d.type || "")}</span>
-            <span class="badge ${d.paid ? 'paid-tag' : 'unpaid-tag'}">${d.paid ? '已付' : '未付'}</span>
-          </div>
-          <div class="item-sub">金額：$${amount.toLocaleString()}</div>
-        </div>
-
-        <div class="item-right">
-          <label class="check-row">
-            <input type="checkbox" ${d.paid ? "checked" : ""} onchange="togglePaid(${i}, this.checked)">
-            已付
-          </label>
-          <button class="btn-del" onclick="delItem(${i})">刪</button>
-        </div>
-      </div>
-    `;
+    if (d.paid) paidTotal += amount;
+    else unpaidTotal += amount;
   });
+
+  list.innerHTML = `
+    ${renderSection("未付", unpaidData, false)}
+    ${renderSection("已付", paidData, true)}
+  `;
 
   document.getElementById("count").innerText = data.length;
   document.getElementById("total").innerText = total.toLocaleString();
@@ -462,10 +534,83 @@ function render() {
   document.getElementById("unpaidTotal").innerText = unpaidTotal.toLocaleString();
 }
 
+function renderSection(title, arr, isPaid) {
+  const subtotal = arr.reduce((acc, d) => acc + Number(d.amount || 0), 0);
+  return `
+    <div class="section-block">
+      <div class="section-head">
+        <div class="section-title">${title}</div>
+        <div class="section-sub">${arr.length} 筆｜小計 $${subtotal.toLocaleString()}</div>
+      </div>
+      ${
+        arr.length
+          ? arr.map(d => renderItem(d, isPaid)).join("")
+          : `<div class="empty-box">${title}區目前沒有項目</div>`
+      }
+    </div>
+  `;
+}
+
+function renderItem(d, isPaid) {
+  if (editingId === d.id) {
+    return `
+      <div class="item">
+        <div class="inline-edit">
+          <input id="edit-name-${d.id}" value="${escapeAttr(d.name)}" placeholder="名稱">
+          <input id="edit-money-${d.id}" type="number" value="${Number(d.amount || 0)}" placeholder="金額">
+          <select id="edit-type-${d.id}">
+            <option ${d.type === '商品' ? 'selected' : ''}>商品</option>
+            <option ${d.type === '匯款' ? 'selected' : ''}>匯款</option>
+            <option ${d.type === '其他' ? 'selected' : ''}>其他</option>
+          </select>
+          <input id="edit-date-${d.id}" type="date" value="${escapeAttr(d.date || '')}">
+          <label class="check-row">
+            <input id="edit-paid-${d.id}" type="checkbox" ${d.paid ? 'checked' : ''}>
+            已付
+          </label>
+          <button class="btn-save" onclick="saveEdit(${d.id})">儲存</button>
+          <button class="btn-cancel" onclick="cancelEdit()">取消</button>
+        </div>
+        <div style="margin-top:10px; width:100%;">
+          <input id="edit-note-${d.id}" value="${escapeAttr(d.note || '')}" placeholder="備註（可空白）">
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="item">
+      <div class="item-left">
+        <div class="item-name">
+          ${escapeHtml(d.name || "")}
+          <span class="badge">${escapeHtml(d.type || "")}</span>
+          <span class="badge ${isPaid ? 'paid-tag' : 'unpaid-tag'}">${isPaid ? '已付' : '未付'}</span>
+        </div>
+        <div class="item-sub">
+          <span>金額：$${Number(d.amount || 0).toLocaleString()}</span>
+          ${d.date ? `<span>日期：${escapeHtml(d.date)}</span>` : `<span>日期：—</span>`}
+          ${d.note ? `<span class="note-box">備註：${escapeHtml(d.note)}</span>` : ``}
+        </div>
+      </div>
+
+      <div class="item-right">
+        <label class="check-row">
+          <input type="checkbox" ${d.paid ? "checked" : ""} onchange="togglePaidById(${d.id}, this.checked)">
+          已付
+        </label>
+        <button class="btn-edit" onclick="startEdit(${d.id})">編輯</button>
+        <button class="btn-del" onclick="delItemById(${d.id})">刪除</button>
+      </div>
+    </div>
+  `;
+}
+
 function add() {
   const name = document.getElementById("name").value.trim();
   const money = Number(document.getElementById("money").value);
   const type = document.getElementById("type").value;
+  const date = document.getElementById("dateInput").value;
+  const note = document.getElementById("noteInput").value.trim();
   const paid = document.getElementById("paidInput").checked;
 
   if (!name) return alert("填名稱");
@@ -476,32 +621,72 @@ function add() {
     name,
     amount: money,
     type,
+    date,
+    note,
     paid,
     createdAt: Date.now()
   });
 
-  dirty = true;
+  toggleDirty(true);
   render();
-  document.getElementById("syncStatus").innerText = "目前狀態：有未同步變更";
 
   document.getElementById("name").value = "";
   document.getElementById("money").value = "";
   document.getElementById("type").value = "商品";
+  document.getElementById("dateInput").value = "";
+  document.getElementById("noteInput").value = "";
   document.getElementById("paidInput").checked = false;
 }
 
-function delItem(i) {
-  data.splice(i, 1);
-  dirty = true;
+function delItemById(id) {
+  data = data.filter(d => d.id !== id);
+  if (editingId === id) editingId = null;
+  toggleDirty(true);
   render();
-  document.getElementById("syncStatus").innerText = "目前狀態：有未同步變更";
 }
 
-function togglePaid(i, checked) {
-  data[i].paid = checked;
-  dirty = true;
+function togglePaidById(id, checked) {
+  const target = data.find(d => d.id === id);
+  if (!target) return;
+  target.paid = checked;
+  toggleDirty(true);
   render();
-  document.getElementById("syncStatus").innerText = "目前狀態：有未同步變更";
+}
+
+function startEdit(id) {
+  editingId = id;
+  render();
+}
+
+function cancelEdit() {
+  editingId = null;
+  render();
+}
+
+function saveEdit(id) {
+  const target = data.find(d => d.id === id);
+  if (!target) return;
+
+  const name = document.getElementById(`edit-name-${id}`).value.trim();
+  const money = Number(document.getElementById(`edit-money-${id}`).value);
+  const type = document.getElementById(`edit-type-${id}`).value;
+  const date = document.getElementById(`edit-date-${id}`).value;
+  const note = document.getElementById(`edit-note-${id}`).value.trim();
+  const paid = document.getElementById(`edit-paid-${id}`).checked;
+
+  if (!name) return alert("名稱不能空白");
+  if (Number.isNaN(money)) return alert("金額格式錯誤");
+
+  target.name = name;
+  target.amount = money;
+  target.type = type;
+  target.date = date;
+  target.note = note;
+  target.paid = paid;
+
+  editingId = null;
+  toggleDirty(true);
+  render();
 }
 
 async function syncAll() {
@@ -549,8 +734,16 @@ function escapeHtml(str) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
+    .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function escapeAttr(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 load();
