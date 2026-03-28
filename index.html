@@ -1,194 +1,661 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小豬沒錢日記 - 管理</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🐷 小豬沒錢日記</title>
+  <style>
+    :root {
+      --bg: #f7f3ef;
+      --card: #fffaf7;
+      --white: #ffffff;
+      --line: #ecdcd1;
+      --text: #3d3028;
+      --sub: #8c7667;
+      --accent: #eb8cab;
+      --accent-soft: #ffe0e8;
+      --shadow: 0 10px 28px rgba(89, 63, 46, 0.08);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+    }
 
-<style>
-body {
-  margin:0;
-  font-family:Arial;
-  background:#f6f3ef;
-}
+    * { box-sizing: border-box; }
 
-.wrap {
-  max-width:800px;
-  margin:auto;
-  padding:15px;
-}
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+      background:
+        radial-gradient(circle at top, #fff7fb 0%, #f7f3ef 42%, #f7f3ef 100%);
+      color: var(--text);
+    }
 
-.hero {
-  background:#fff;
-  border-radius:16px;
-  padding:15px;
-  margin-bottom:15px;
-}
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 18px 14px 88px;
+    }
 
-.hero-top {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
+    .hero {
+      background: linear-gradient(135deg, #fff7fa, #fffdf9);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 10px;
+      z-index: 20;
+      backdrop-filter: blur(10px);
+    }
 
-button {
-  padding:8px 12px;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
-}
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
 
-.btn-main { background:#ff7aa2; color:white; }
-.btn-del { background:#ff4d4d; color:white; }
+    .title-wrap h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.2;
+    }
 
-.hidden { display:none; }
+    .title-wrap .sub {
+      margin-top: 6px;
+      color: var(--sub);
+      font-size: 14px;
+    }
 
-input,select {
-  padding:10px;
-  border-radius:10px;
-  border:1px solid #ccc;
-  width:100%;
-}
+    .hero-body.hidden {
+      display: none;
+    }
 
-.form {
-  display:flex;
-  gap:10px;
-  margin-top:10px;
-}
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
 
-.card {
-  background:#fff;
-  border-radius:16px;
-  padding:15px;
-  margin-top:15px;
-}
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+    }
 
-.item {
-  display:flex;
-  justify-content:space-between;
-  padding:10px;
-  border-bottom:1px solid #eee;
-}
+    .stat-label {
+      color: var(--sub);
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
 
-</style>
+    .stat-value {
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr 140px 140px;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-top: 14px;
+    }
+
+    .list-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .list-title {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .muted {
+      color: var(--sub);
+      font-size: 14px;
+    }
+
+    input, select, button {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--white);
+      color: var(--text);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(235, 140, 171, 0.14);
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-soft {
+      background: var(--accent-soft);
+      border-color: var(--accent-soft);
+    }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .item {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .item-main {
+      min-width: 0;
+    }
+
+    .item-title {
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+      color: var(--sub);
+      font-size: 13px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: #fff6f8;
+      border: 1px solid var(--line);
+      color: #6f5a4d;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .amount-wrap {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .amount {
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .amount-sub {
+      margin-top: 4px;
+      color: var(--sub);
+      font-size: 12px;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--sub);
+      padding: 28px 12px;
+      border: 1px dashed var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--white);
+    }
+
+    .footer-note {
+      text-align: center;
+      color: var(--sub);
+      font-size: 13px;
+      margin-top: 12px;
+      min-height: 22px;
+    }
+
+    .warn {
+      color: #d85c5c;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .loading {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: blink 1s infinite;
+    }
+
+    .dot:nth-child(2) { animation-delay: 0.15s; }
+    .dot:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.25; transform: scale(0.9); }
+      40% { opacity: 1; transform: scale(1); }
+    }
+
+    /* 同步動畫 */
+    .sync-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      display: none;
+    }
+
+    .sync-overlay.show {
+      display: block;
+    }
+
+    .run-track {
+      position: fixed;
+      left: 20px;
+      right: 20px;
+      bottom: 26px;
+      height: 82px;
+      background: rgba(255,255,255,0.95);
+      border: 1px solid #f2cfda;
+      border-radius: 999px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+      overflow: hidden;
+    }
+
+    .runner-text {
+      position: absolute;
+      top: 12px;
+      left: 18px;
+      font-size: 14px;
+      color: #6b5d53;
+      font-weight: 700;
+    }
+
+    .run-line {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+      border-top: 3px dashed #f1a8bc;
+    }
+
+    .runner {
+      position: absolute;
+      left: -60px;
+      bottom: 18px;
+      font-size: 42px;
+      animation: pigRunAcross 2.2s linear infinite;
+    }
+
+    @keyframes pigRunAcross {
+      0%   { left: -60px; transform: translateY(0); }
+      10%  { transform: translateY(-4px); }
+      20%  { transform: translateY(0); }
+      30%  { transform: translateY(-4px); }
+      40%  { transform: translateY(0); }
+      50%  { transform: translateY(-4px); }
+      60%  { transform: translateY(0); }
+      70%  { transform: translateY(-4px); }
+      80%  { transform: translateY(0); }
+      100% { left: calc(100% - 28px); transform: translateY(0); }
+    }
+
+    .success-pop {
+      position: fixed;
+      left: 50%;
+      bottom: 122px;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.98);
+      border: 1px solid #f3cfda;
+      border-radius: 24px;
+      padding: 14px 20px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.14);
+      display: none;
+      z-index: 10000;
+      text-align: center;
+      min-width: 210px;
+      pointer-events: none;
+    }
+
+    .success-pop.show {
+      display: block;
+      animation: popIn 0.35s ease;
+    }
+
+    .success-title {
+      font-weight: 800;
+      color: #ff5f92;
+      margin-bottom: 6px;
+    }
+
+    .hearts {
+      font-size: 24px;
+      letter-spacing: 6px;
+      animation: heartBeat 0.8s ease-in-out infinite alternate;
+    }
+
+    @keyframes popIn {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px) scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+      }
+    }
+
+    @keyframes heartBeat {
+      from { transform: scale(1); }
+      to   { transform: scale(1.14); }
+    }
+
+    @media (max-width: 760px) {
+      .summary,
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .item {
+        grid-template-columns: 1fr;
+      }
+
+      .amount-wrap {
+        text-align: left;
+      }
+
+      .title-wrap h1 {
+        font-size: 26px;
+      }
+
+      .run-track {
+        left: 12px;
+        right: 12px;
+        bottom: 14px;
+        height: 74px;
+      }
+
+      .runner {
+        font-size: 36px;
+      }
+
+      .success-pop {
+        width: calc(100% - 32px);
+        min-width: auto;
+        bottom: 108px;
+      }
+    }
+  </style>
 </head>
-
 <body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-top">
+        <div class="title-wrap">
+          <h1>🐷 小豬沒錢日記</h1>
+          <div class="sub">觀看版｜只能查看，資料會自動同步</div>
+        </div>
+        <button id="toggleHeroBtn" class="btn-soft">收起上面</button>
+      </div>
 
-<div class="wrap">
+      <div id="heroBody" class="hero-body">
+        <div class="summary">
+          <div class="stat">
+            <div class="stat-label">總筆數</div>
+            <div class="stat-value" id="countStat">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">總額</div>
+            <div class="stat-value" id="totalStat">$0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">最後更新</div>
+            <div class="stat-value" id="updateStat" style="font-size:16px;">—</div>
+          </div>
+        </div>
 
-<div class="hero">
-  <div class="hero-top">
-    <h2>🐷 管理頁</h2>
-    <button onclick="toggle()">收起</button>
+        <div class="toolbar">
+          <input id="searchInput" type="text" placeholder="搜尋名稱或備註，例如：庫洛米 / 匯款" />
+          <select id="filterType">
+            <option value="all">全部類型</option>
+            <option value="商品">商品</option>
+            <option value="匯款">匯款</option>
+            <option value="其他">其他</option>
+          </select>
+          <select id="sortMode">
+            <option value="newest">最新在前</option>
+            <option value="oldest">最舊在前</option>
+            <option value="amount_desc">金額高到低</option>
+            <option value="amount_asc">金額低到高</option>
+            <option value="name_asc">名稱 A→Z</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="list-head">
+        <div class="list-title">清單內容</div>
+        <div id="viewInfo" class="muted">共 0 筆</div>
+      </div>
+
+      <div id="list" class="list"></div>
+      <div id="emptyState" class="empty hidden">目前沒有符合條件的項目。</div>
+      <div id="messageBox" class="footer-note"></div>
+    </section>
   </div>
 
-  <div id="top">
-    <div>總筆數：<span id="count">0</span></div>
-    <div>總額：$<span id="total">0</span></div>
-
-    <div class="form">
-      <input id="name" placeholder="名稱">
-      <input id="money" type="number" placeholder="金額">
-      <select id="type">
-        <option>商品</option>
-        <option>匯款</option>
-        <option>其他</option>
-      </select>
-      <button class="btn-main" onclick="add()">新增</button>
+  <div id="syncOverlay" class="sync-overlay">
+    <div class="run-track">
+      <div class="runner-text" id="runnerText">小豬同步中...</div>
+      <div class="run-line"></div>
+      <div class="runner">🐷</div>
     </div>
   </div>
-</div>
 
-<div class="card">
-  <div id="list"></div>
-</div>
+  <div id="successPop" class="success-pop">
+    <div class="success-title">成功叼回!</div>
+    <div class="hearts">🩵 💗 🩵</div>
+  </div>
 
-</div>
+  <script>
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbwahAiG7COCHfCOITf1XoIWKdL-pWHLvYlmMxPEDrlndD8r3pxTQupZQKboOklVCfA3jQ/exec';
 
-<script>
+    let items = [];
+    let successTimer = null;
 
-const API = "https://script.google.com/macros/s/AKfycbwahAiG7COCHfCOITf1XoIWKdL-pWHLvYlmMxPEDrlndD8r3pxTQupZQKboOklVCfA3jQ/exec";
-const PASSWORD = "12345678";
+    const els = {
+      heroBody: document.getElementById('heroBody'),
+      toggleHeroBtn: document.getElementById('toggleHeroBtn'),
+      countStat: document.getElementById('countStat'),
+      totalStat: document.getElementById('totalStat'),
+      updateStat: document.getElementById('updateStat'),
+      searchInput: document.getElementById('searchInput'),
+      filterType: document.getElementById('filterType'),
+      sortMode: document.getElementById('sortMode'),
+      list: document.getElementById('list'),
+      emptyState: document.getElementById('emptyState'),
+      viewInfo: document.getElementById('viewInfo'),
+      messageBox: document.getElementById('messageBox'),
+      syncOverlay: document.getElementById('syncOverlay'),
+      runnerText: document.getElementById('runnerText'),
+      successPop: document.getElementById('successPop')
+    };
 
-let data = [];
+    els.toggleHeroBtn.addEventListener('click', () => {
+      els.heroBody.classList.toggle('hidden');
+      els.toggleHeroBtn.textContent = els.heroBody.classList.contains('hidden')
+        ? '展開上面'
+        : '收起上面';
+    });
 
-function toggle(){
-  document.getElementById("top").classList.toggle("hidden");
-}
+    els.searchInput.addEventListener('input', render);
+    els.filterType.addEventListener('change', render);
+    els.sortMode.addEventListener('change', render);
 
-async function load(){
-  let res = await fetch(API+"?action=get");
-  let json = await res.json();
-  data = json.items || [];
-  render();
-}
+    loadRemoteData();
 
-function render(){
-  let list = document.getElementById("list");
-  list.innerHTML = "";
+    function showSync(text = '小豬同步中...') {
+      hideSuccess();
+      els.syncOverlay.classList.add('show');
+      els.runnerText.textContent = text;
+      setMessage(`
+        <span class="loading">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+          同步中...
+        </span>
+      `, false, true);
+    }
 
-  let total = 0;
+    function hideSync(message = '同步完成') {
+      els.syncOverlay.classList.remove('show');
+      setMessage(message);
+    }
 
-  data.forEach((d,i)=>{
-    total += d.amount;
+    function showSuccess() {
+      clearTimeout(successTimer);
+      els.successPop.classList.add('show');
+      successTimer = setTimeout(() => {
+        hideSuccess();
+      }, 1800);
+    }
 
-    list.innerHTML += `
-    <div class="item">
-      <div>
-        ${d.name} (${d.type})
-      </div>
-      <div>
-        $${d.amount}
-        <button onclick="del(${i})">刪</button>
-      </div>
-    </div>
-    `;
-  });
+    function hideSuccess() {
+      els.successPop.classList.remove('show');
+    }
 
-  document.getElementById("count").innerText = data.length;
-  document.getElementById("total").innerText = total;
-}
+    async function loadRemoteData() {
+      try {
+        showSync('小豬正在把資料叼回來...');
+        const res = await fetch(API_BASE + '?action=get');
+        const data = await res.json();
 
-async function add(){
-  let name = document.getElementById("name").value;
-  let money = Number(document.getElementById("money").value);
-  let type = document.getElementById("type").value;
+        items = Array.isArray(data.items) ? data.items : [];
+        els.updateStat.textContent = data.updatedAt || '—';
 
-  if(!name) return alert("填名稱");
+        render();
+        hideSync('同步完成');
+        showSuccess();
+      } catch (err) {
+        els.syncOverlay.classList.remove('show');
+        setMessage('同步失敗：' + escapeHtml(err.message), true);
+      }
+    }
 
-  data.unshift({
-    id: Date.now(),
-    name,
-    amount: money,
-    type,
-    createdAt: Date.now()
-  });
+    function render() {
+      const keyword = els.searchInput.value.trim().toLowerCase();
+      const filterType = els.filterType.value;
+      const sortMode = els.sortMode.value;
 
-  await save();
-  load();
-}
+      let view = items.filter(item => {
+        const text = `${item.name || ''} ${item.note || ''}`.toLowerCase();
+        const matchKeyword = !keyword || text.includes(keyword);
+        const matchType = filterType === 'all' || item.type === filterType;
+        return matchKeyword && matchType;
+      });
 
-async function del(i){
-  data.splice(i,1);
-  await save();
-  load();
-}
+      view.sort((a, b) => {
+        switch (sortMode) {
+          case 'oldest': return (a.createdAt || 0) - (b.createdAt || 0);
+          case 'amount_desc': return Number(b.amount || 0) - Number(a.amount || 0);
+          case 'amount_asc': return Number(a.amount || 0) - Number(b.amount || 0);
+          case 'name_asc': return String(a.name || '').localeCompare(String(b.name || ''), 'zh-Hant');
+          case 'newest':
+          default: return (b.createdAt || 0) - (a.createdAt || 0);
+        }
+      });
 
-async function save(){
-  await fetch(API,{
-    method:"POST",
-    body: JSON.stringify({
-      action:"save",
-      password:PASSWORD,
-      items:data
-    })
-  });
-}
+      els.list.innerHTML = view.map(item => `
+        <div class="item">
+          <div class="item-main">
+            <div class="item-title">${escapeHtml(item.name || '')}</div>
+            <div class="meta">
+              <span class="badge">${escapeHtml(item.type || '其他')}</span>
+              ${item.note ? `<span>${escapeHtml(item.note)}</span>` : ''}
+            </div>
+          </div>
+          <div class="amount-wrap">
+            <div class="amount">$${formatNumber(item.amount || 0)}</div>
+            <div class="amount-sub">金額</div>
+          </div>
+        </div>
+      `).join('');
 
-load();
+      els.emptyState.classList.toggle('hidden', view.length !== 0);
+      els.countStat.textContent = String(items.length);
+      els.totalStat.textContent = '$' + formatNumber(sum(items.map(x => x.amount)));
+      els.viewInfo.textContent = `目前顯示 ${view.length} 筆 / 共 ${items.length} 筆`;
+    }
 
-</script>
+    function setMessage(msg, isWarn = false, isHtml = false) {
+      els.messageBox.className = isWarn ? 'footer-note warn' : 'footer-note';
+      if (isHtml) {
+        els.messageBox.innerHTML = msg;
+      } else {
+        els.messageBox.textContent = msg;
+      }
+    }
 
+    function sum(arr) {
+      return arr.reduce((acc, n) => acc + Number(n || 0), 0);
+    }
+
+    function formatNumber(n) {
+      return Number(n || 0).toLocaleString('en-US');
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
 </body>
 </html>
