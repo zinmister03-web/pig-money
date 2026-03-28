@@ -18,6 +18,12 @@
       --radius-xl: 24px;
       --radius-lg: 18px;
       --radius-md: 14px;
+      --paid-bg: #eef9f1;
+      --paid-line: #cfe8d6;
+      --paid-text: #2c6e3f;
+      --unpaid-bg: #fff8eb;
+      --unpaid-line: #f0dfb5;
+      --unpaid-text: #9a6a00;
     }
 
     * { box-sizing: border-box; }
@@ -74,7 +80,7 @@
 
     .summary {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
       margin-top: 14px;
     }
@@ -93,7 +99,7 @@
     }
 
     .stat-value {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 800;
       line-height: 1.2;
     }
@@ -164,6 +170,42 @@
       border-color: var(--accent-soft);
     }
 
+    .section-block + .section-block {
+      margin-top: 18px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .section-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .section-count {
+      font-size: 13px;
+      color: var(--sub);
+    }
+
+    .section-total {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--sub);
+    }
+
+    .section-title {
+      font-size: 17px;
+      font-weight: 900;
+    }
+
     .list {
       display: flex;
       flex-direction: column;
@@ -179,6 +221,16 @@
       grid-template-columns: 1fr auto;
       gap: 10px;
       align-items: center;
+    }
+
+    .item.paid-item {
+      background: var(--paid-bg);
+      border-color: var(--paid-line);
+    }
+
+    .item.unpaid-item {
+      background: var(--unpaid-bg);
+      border-color: var(--unpaid-line);
     }
 
     .item-main {
@@ -212,6 +264,18 @@
       color: #6f5a4d;
       font-size: 12px;
       font-weight: 700;
+    }
+
+    .badge.paid {
+      background: #e6f7eb;
+      border-color: #cfe8d6;
+      color: var(--paid-text);
+    }
+
+    .badge.unpaid {
+      background: #fff3da;
+      border-color: #f0dfb5;
+      color: var(--unpaid-text);
     }
 
     .amount-wrap {
@@ -278,7 +342,6 @@
       40% { opacity: 1; transform: scale(1); }
     }
 
-    /* 同步動畫 */
     .sync-overlay {
       position: fixed;
       inset: 0;
@@ -435,7 +498,7 @@
       <div class="hero-top">
         <div class="title-wrap">
           <h1>🐷 小豬沒錢日記</h1>
-          <div class="sub"></div>
+          <div class="sub">已付 / 未付分開顯示</div>
         </div>
         <button id="toggleHeroBtn" class="btn-soft">收起上面</button>
       </div>
@@ -449,6 +512,10 @@
           <div class="stat">
             <div class="stat-label">總額</div>
             <div class="stat-value" id="totalStat">$0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">未付總額</div>
+            <div class="stat-value" id="unpaidStat">$0</div>
           </div>
           <div class="stat">
             <div class="stat-label">最後更新</div>
@@ -481,7 +548,7 @@
         <div id="viewInfo" class="muted">共 0 筆</div>
       </div>
 
-      <div id="list" class="list"></div>
+      <div id="contentArea"></div>
       <div id="emptyState" class="empty hidden">目前沒有符合條件的項目。</div>
       <div id="messageBox" class="footer-note"></div>
     </section>
@@ -511,11 +578,12 @@
       toggleHeroBtn: document.getElementById('toggleHeroBtn'),
       countStat: document.getElementById('countStat'),
       totalStat: document.getElementById('totalStat'),
+      unpaidStat: document.getElementById('unpaidStat'),
       updateStat: document.getElementById('updateStat'),
       searchInput: document.getElementById('searchInput'),
       filterType: document.getElementById('filterType'),
       sortMode: document.getElementById('sortMode'),
-      list: document.getElementById('list'),
+      contentArea: document.getElementById('contentArea'),
       emptyState: document.getElementById('emptyState'),
       viewInfo: document.getElementById('viewInfo'),
       messageBox: document.getElementById('messageBox'),
@@ -536,6 +604,24 @@
     els.sortMode.addEventListener('change', render);
 
     loadRemoteData();
+
+    function normalizePaid(value) {
+      if (value === true || value === 1) return true;
+      if (value === false || value === 0 || value == null) return false;
+
+      const str = String(value).trim().toLowerCase();
+      return ['true', '1', 'yes', 'y', 'on', '已付'].includes(str);
+    }
+
+    function normalizeItem(item) {
+      return {
+        ...item,
+        paid: normalizePaid(item.paid),
+        amount: Number(item.amount || 0),
+        createdAt: Number(item.createdAt || 0),
+        date: item.date || ''
+      };
+    }
 
     function showSync(text = '小豬同步中...') {
       hideSuccess();
@@ -574,7 +660,7 @@
         const res = await fetch(API_BASE + '?action=get');
         const data = await res.json();
 
-        items = Array.isArray(data.items) ? data.items : [];
+        items = Array.isArray(data.items) ? data.items.map(normalizeItem) : [];
         els.updateStat.textContent = data.updatedAt || '—';
 
         render();
@@ -592,7 +678,7 @@
       const sortMode = els.sortMode.value;
 
       let view = items.filter(item => {
-        const text = `${item.name || ''} ${item.note || ''}`.toLowerCase();
+        const text = `${item.name || ''} ${item.note || ''} ${item.date || ''}`.toLowerCase();
         const matchKeyword = !keyword || text.includes(keyword);
         const matchType = filterType === 'all' || item.type === filterType;
         return matchKeyword && matchType;
@@ -609,27 +695,62 @@
         }
       });
 
-els.list.innerHTML = view.map(item => `
-  <div class="item">
-    <div class="item-main">
-      <div class="item-title">${escapeHtml(item.name || '')}</div>
-      <div class="meta">
-        <span class="badge">${escapeHtml(item.type || '其他')}</span>
-        <span class="badge">${item.paid ? '已付' : '未付'}</span>
-        ${item.note ? `<span>${escapeHtml(item.note)}</span>` : ''}
-      </div>
-    </div>
-    <div class="amount-wrap">
-      <div class="amount">$${formatNumber(item.amount || 0)}</div>
-      <div class="amount-sub">金額</div>
-    </div>
-  </div>
-`).join('');
+      const unpaidItems = view.filter(item => !item.paid);
+      const paidItems = view.filter(item => item.paid);
+
+      els.contentArea.innerHTML = `
+        ${renderSection('未付', unpaidItems, false)}
+        ${renderSection('已付', paidItems, true)}
+      `;
+
+      const totalAll = sum(items.map(x => x.amount));
+      const unpaidAll = sum(items.filter(x => !x.paid).map(x => x.amount));
 
       els.emptyState.classList.toggle('hidden', view.length !== 0);
       els.countStat.textContent = String(items.length);
-      els.totalStat.textContent = '$' + formatNumber(sum(items.map(x => x.amount)));
+      els.totalStat.textContent = '$' + formatNumber(totalAll);
+      els.unpaidStat.textContent = '$' + formatNumber(unpaidAll);
       els.viewInfo.textContent = `目前顯示 ${view.length} 筆 / 共 ${items.length} 筆`;
+    }
+
+    function renderSection(title, list, isPaid) {
+      const total = sum(list.map(x => x.amount));
+      return `
+        <div class="section-block">
+          <div class="section-header">
+            <div class="section-title-row">
+              <div class="section-title">${title}</div>
+              <div class="section-count">${list.length} 筆</div>
+            </div>
+            <div class="section-total">小計：$${formatNumber(total)}</div>
+          </div>
+          ${
+            list.length
+              ? `<div class="list">${list.map(item => renderItem(item, isPaid)).join('')}</div>`
+              : `<div class="empty">${title}區目前沒有項目。</div>`
+          }
+        </div>
+      `;
+    }
+
+    function renderItem(item, isPaid) {
+      return `
+        <div class="item ${isPaid ? 'paid-item' : 'unpaid-item'}">
+          <div class="item-main">
+            <div class="item-title">${escapeHtml(item.name || '')}</div>
+            <div class="meta">
+              <span class="badge">${escapeHtml(item.type || '其他')}</span>
+              <span class="badge ${isPaid ? 'paid' : 'unpaid'}">${isPaid ? '已付' : '未付'}</span>
+              ${item.date ? `<span>日期：${escapeHtml(item.date)}</span>` : ''}
+              ${item.note ? `<span>備註：${escapeHtml(item.note)}</span>` : ''}
+            </div>
+          </div>
+          <div class="amount-wrap">
+            <div class="amount">$${formatNumber(item.amount || 0)}</div>
+            <div class="amount-sub">金額</div>
+          </div>
+        </div>
+      `;
     }
 
     function setMessage(msg, isWarn = false, isHtml = false) {
