@@ -298,10 +298,13 @@ input, select {
 <div class="wrap">
 
   <div class="hero">
-    <div class="hero-top">
-      <h2>🐷 管理頁</h2>
-      <button onclick="toggle()">收起</button>
-    </div>
+<div class="hero-top">
+  <h2>🐷 管理頁</h2>
+  <div style="display:flex; gap:10px;">
+    <button class="btn-main" onclick="syncAll()">同步全部</button>
+    <button onclick="toggle()">收起</button>
+  </div>
+</div>
 
     <div id="top">
       <div class="summary-box">
@@ -357,6 +360,7 @@ const PASSWORD = "12345678";
 
 let data = [];
 let successTimer = null;
+let dirty = false; // 是否有尚未同步的變更
 
 function toggle() {
   document.getElementById("top").classList.toggle("hidden");
