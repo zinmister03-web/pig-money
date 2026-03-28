@@ -7,97 +7,288 @@
 
 <style>
 body {
-  margin:0;
-  font-family:Arial;
-  background:#f6f3ef;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f6f3ef;
 }
 
 .wrap {
-  max-width:800px;
-  margin:auto;
-  padding:15px;
+  max-width: 900px;
+  margin: auto;
+  padding: 15px;
 }
 
 .hero {
-  background:#fff;
-  border-radius:16px;
-  padding:15px;
-  margin-bottom:15px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 15px;
+  margin-bottom: 15px;
 }
 
 .hero-top {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 button {
-  padding:8px 12px;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
 }
 
-.btn-main { background:#ff7aa2; color:white; }
-.btn-del { background:#ff4d4d; color:white; }
+.btn-main { background: #ff7aa2; color: white; }
+.btn-del { background: #ff4d4d; color: white; }
 
-.hidden { display:none; }
+.hidden { display: none; }
 
 input, select {
-  padding:10px;
-  border-radius:10px;
-  border:1px solid #ccc;
-  width:100%;
-  box-sizing:border-box;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  width: 100%;
 }
 
 .form {
-  display:flex;
-  gap:10px;
-  margin-top:10px;
-  flex-wrap:wrap;
-}
-
-.form > * {
-  flex:1 1 150px;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr auto auto;
+  gap: 10px;
+  margin-top: 10px;
+  align-items: center;
 }
 
 .card {
-  background:#fff;
-  border-radius:16px;
-  padding:15px;
-  margin-top:15px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 15px;
+  margin-top: 15px;
 }
 
 .item {
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:10px;
-  padding:10px;
-  border-bottom:1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 10px;
+  border-bottom: 1px solid #eee;
+  gap: 12px;
 }
 
 .item-left {
-  flex:1;
+  min-width: 0;
 }
 
 .item-name {
-  font-weight:bold;
+  font-weight: bold;
+  word-break: break-word;
 }
 
-.item-note {
-  margin-top:4px;
-  font-size:13px;
-  color:#666;
-  white-space:pre-wrap;
+.item-sub {
+  font-size: 13px;
+  color: #666;
+  margin-top: 4px;
 }
 
 .item-right {
-  display:flex;
-  align-items:center;
-  gap:8px;
-  white-space:nowrap;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sync-status {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #666;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ffe8ef;
+  color: #8b4d61;
+  margin-left: 8px;
+}
+
+.paid-tag {
+  background: #dff7e7;
+  color: #1f7a3d;
+}
+
+.unpaid-tag {
+  background: #fff1d9;
+  color: #9a6a00;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.check-row input[type="checkbox"] {
+  width: auto;
+  transform: scale(1.2);
+}
+
+.summary-box {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  font-size: 15px;
+}
+
+.summary-box strong {
+  color: #333;
+}
+
+/* 同步動畫 */
+.sync-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+}
+
+.sync-overlay.show {
+  display: block;
+}
+
+.run-track {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 30px;
+  height: 80px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid #f3cfd9;
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+
+.run-line {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  border-top: 3px dashed #f1a8bc;
+}
+
+.runner {
+  position: absolute;
+  left: -60px;
+  bottom: 18px;
+  font-size: 42px;
+  animation: pigRunAcross 2.2s linear infinite;
+}
+
+.runner-text {
+  position: absolute;
+  top: 12px;
+  left: 20px;
+  font-size: 14px;
+  color: #666;
+  font-weight: bold;
+}
+
+@keyframes pigRunAcross {
+  0%   { left: -60px; transform: translateY(0); }
+  10%  { transform: translateY(-4px); }
+  20%  { transform: translateY(0); }
+  30%  { transform: translateY(-4px); }
+  40%  { transform: translateY(0); }
+  50%  { transform: translateY(-4px); }
+  60%  { transform: translateY(0); }
+  70%  { transform: translateY(-4px); }
+  80%  { transform: translateY(0); }
+  100% { left: calc(100% - 30px); transform: translateY(0); }
+}
+
+.success-pop {
+  position: fixed;
+  left: 50%;
+  bottom: 120px;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.96);
+  border: 1px solid #f3cfd9;
+  border-radius: 24px;
+  padding: 14px 20px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.14);
+  display: none;
+  z-index: 10000;
+  text-align: center;
+  min-width: 200px;
+}
+
+.success-pop.show {
+  display: block;
+  animation: popIn 0.35s ease;
+}
+
+.success-title {
+  font-weight: bold;
+  color: #ff5f92;
+  margin-bottom: 6px;
+}
+
+.hearts {
+  font-size: 24px;
+  letter-spacing: 6px;
+  animation: heartBeat 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes heartBeat {
+  from { transform: scale(1); }
+  to   { transform: scale(1.15); }
+}
+
+@media (max-width: 780px){
+  .form {
+    grid-template-columns: 1fr;
+  }
+
+  .item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .item-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .run-track {
+    left: 12px;
+    right: 12px;
+    bottom: 18px;
+    height: 74px;
+  }
+
+  .runner {
+    font-size: 36px;
+  }
+
+  .success-pop {
+    width: calc(100% - 32px);
+    min-width: auto;
+  }
 }
 </style>
 </head>
@@ -113,8 +304,14 @@ input, select {
     </div>
 
     <div id="top">
-      <div>總筆數：<span id="count">0</span></div>
-      <div>總額：$<span id="total">0</span></div>
+      <div class="summary-box">
+        <div>總筆數：<strong id="count">0</strong></div>
+        <div>總額：<strong>$<span id="total">0</span></strong></div>
+        <div>已付：<strong>$<span id="paidTotal">0</span></strong></div>
+        <div>未付：<strong>$<span id="unpaidTotal">0</span></strong></div>
+      </div>
+
+      <div class="sync-status" id="syncStatus">目前狀態：已完成</div>
 
       <div class="form">
         <input id="name" placeholder="名稱">
@@ -124,7 +321,12 @@ input, select {
           <option>匯款</option>
           <option>其他</option>
         </select>
-        <input id="note" placeholder="備註（可不填）">
+
+        <label class="check-row">
+          <input id="paidInput" type="checkbox">
+          已付
+        </label>
+
         <button class="btn-main" onclick="add()">新增</button>
       </div>
     </div>
@@ -136,92 +338,192 @@ input, select {
 
 </div>
 
+<div id="syncOverlay" class="sync-overlay">
+  <div class="run-track">
+    <div class="runner-text" id="runnerText">小豬同步中...</div>
+    <div class="run-line"></div>
+    <div class="runner">🐷</div>
+  </div>
+</div>
+
+<div id="successPop" class="success-pop">
+  <div class="success-title">成功叼回</div>
+  <div class="hearts">🩵 💗 🩵</div>
+</div>
+
 <script>
 const API = "https://script.google.com/macros/s/AKfycbwahAiG7COCHfCOITf1XoIWKdL-pWHLvYlmMxPEDrlndD8r3pxTQupZQKboOklVCfA3jQ/exec";
 const PASSWORD = "12345678";
 
 let data = [];
+let successTimer = null;
 
-function toggle(){
+function toggle() {
   document.getElementById("top").classList.toggle("hidden");
 }
 
-async function load(){
-  let res = await fetch(API + "?action=get");
-  let json = await res.json();
-  data = json.items || [];
-  render();
+function showSync(text = "小豬同步中...") {
+  hideSuccess();
+  document.getElementById("syncOverlay").classList.add("show");
+  document.getElementById("runnerText").innerText = text;
+  document.getElementById("syncStatus").innerText = "目前狀態：同步中...";
 }
 
-function render(){
+function hideSync(statusText = "目前狀態：已完成") {
+  document.getElementById("syncOverlay").classList.remove("show");
+  document.getElementById("syncStatus").innerText = statusText;
+}
+
+function showSuccess() {
+  clearTimeout(successTimer);
+  const pop = document.getElementById("successPop");
+  pop.classList.add("show");
+  successTimer = setTimeout(() => {
+    hideSuccess();
+  }, 1800);
+}
+
+function hideSuccess() {
+  document.getElementById("successPop").classList.remove("show");
+}
+
+async function load() {
+  try {
+    showSync("小豬正在把資料叼回來...");
+    const res = await fetch(API + "?action=get");
+    const json = await res.json();
+    data = (json.items || []).map(item => ({
+      ...item,
+      paid: Boolean(item.paid)
+    }));
+    render();
+    hideSync("目前狀態：已同步完成");
+    showSuccess();
+  } catch (err) {
+    hideSync("目前狀態：同步失敗");
+    alert("讀取失敗：" + err.message);
+  }
+}
+
+function render() {
   let list = document.getElementById("list");
   list.innerHTML = "";
 
   let total = 0;
+  let paidTotal = 0;
+  let unpaidTotal = 0;
 
   data.forEach((d, i) => {
-    total += Number(d.amount) || 0;
+    const amount = Number(d.amount || 0);
+    total += amount;
+    if (d.paid) {
+      paidTotal += amount;
+    } else {
+      unpaidTotal += amount;
+    }
 
     list.innerHTML += `
       <div class="item">
         <div class="item-left">
-          <div class="item-name">${d.name} (${d.type})</div>
-          ${d.note ? `<div class="item-note">備註：${d.note}</div>` : ""}
+          <div class="item-name">
+            ${escapeHtml(d.name || "")}
+            <span class="badge">${escapeHtml(d.type || "")}</span>
+            <span class="badge ${d.paid ? 'paid-tag' : 'unpaid-tag'}">${d.paid ? '已付' : '未付'}</span>
+          </div>
+          <div class="item-sub">金額：$${amount.toLocaleString()}</div>
         </div>
+
         <div class="item-right">
-          <span>$${d.amount}</span>
-          <button class="btn-del" onclick="del(${i})">刪</button>
+          <label class="check-row">
+            <input type="checkbox" ${d.paid ? "checked" : ""} onchange="togglePaid(${i}, this.checked)">
+            已付
+          </label>
+          <button class="btn-del" onclick="delItem(${i})">刪</button>
         </div>
       </div>
     `;
   });
 
   document.getElementById("count").innerText = data.length;
-  document.getElementById("total").innerText = total;
+  document.getElementById("total").innerText = total.toLocaleString();
+  document.getElementById("paidTotal").innerText = paidTotal.toLocaleString();
+  document.getElementById("unpaidTotal").innerText = unpaidTotal.toLocaleString();
 }
 
-async function add(){
-  let name = document.getElementById("name").value.trim();
-  let money = Number(document.getElementById("money").value);
-  let type = document.getElementById("type").value;
-  let note = document.getElementById("note").value.trim();
+async function add() {
+  const name = document.getElementById("name").value.trim();
+  const money = Number(document.getElementById("money").value);
+  const type = document.getElementById("type").value;
+  const paid = document.getElementById("paidInput").checked;
 
-  if(!name) return alert("填名稱");
+  if (!name) return alert("填名稱");
+  if (Number.isNaN(money)) return alert("填金額");
 
   data.unshift({
     id: Date.now(),
     name,
-    amount: money || 0,
+    amount: money,
     type,
-    note,
+    paid,
     createdAt: Date.now()
   });
 
   await save();
+  await load();
 
   document.getElementById("name").value = "";
   document.getElementById("money").value = "";
-  document.getElementById("note").value = "";
   document.getElementById("type").value = "商品";
-
-  load();
+  document.getElementById("paidInput").checked = false;
 }
 
-async function del(i){
+async function delItem(i) {
   data.splice(i, 1);
   await save();
-  load();
+  await load();
 }
 
-async function save(){
-  await fetch(API, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "save",
-      password: PASSWORD,
-      items: data
-    })
-  });
+async function togglePaid(i, checked) {
+  data[i].paid = checked;
+  await save();
+  await load();
+}
+
+async function save() {
+  try {
+    showSync("小豬正在衝去同步...");
+    const res = await fetch(API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify({
+        action: "save",
+        password: PASSWORD,
+        items: data
+      })
+    });
+
+    const json = await res.json();
+    if (!json.ok) {
+      throw new Error(json.error || "儲存失敗");
+    }
+
+    hideSync("目前狀態：儲存完成");
+    showSuccess();
+  } catch (err) {
+    hideSync("目前狀態：儲存失敗");
+    alert("儲存失敗：" + err.message);
+  }
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 load();
