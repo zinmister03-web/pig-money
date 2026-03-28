@@ -13,7 +13,7 @@ body {
 }
 
 .wrap {
-  max-width: 980px;
+  max-width: 1080px;
   margin: auto;
   padding: 15px;
 }
@@ -52,10 +52,11 @@ button {
 .btn-edit { background: #ffc94d; color: #4a3600; }
 .btn-save { background: #47b36b; color: white; }
 .btn-cancel { background: #ddd; color: #333; }
+.btn-gray { background: #bfbfbf; color: white; }
 
 .hidden { display: none; }
 
-input, select {
+input, select, textarea {
   padding: 10px;
   border-radius: 10px;
   border: 1px solid #ccc;
@@ -109,6 +110,7 @@ input, select {
   padding: 14px 10px;
   border-bottom: 1px solid #eee;
   gap: 12px;
+  transition: 0.2s;
 }
 
 .item-left {
@@ -164,6 +166,20 @@ input, select {
   color: #9a6a00;
 }
 
+.pending-tag {
+  background: #e6f0ff;
+  color: #2d5ea8;
+}
+
+.deleted-item {
+  opacity: 0.45;
+  background: #f1f1f1;
+}
+
+.deleted-item .item-name {
+  text-decoration: line-through;
+}
+
 .check-row {
   display: flex;
   align-items: center;
@@ -207,6 +223,36 @@ input, select {
   padding: 16px;
   border-radius: 12px;
   text-align: center;
+}
+
+.log-box {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 10px;
+  background: #fffafc;
+}
+
+.log-item {
+  padding: 10px 8px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.log-item:last-child {
+  border-bottom: none;
+}
+
+.log-time {
+  color: #888;
+  font-size: 12px;
+}
+
+.log-action {
+  font-weight: bold;
+  margin-right: 8px;
 }
 
 .sync-overlay {
@@ -364,6 +410,7 @@ input, select {
       <h2>🐷 管理頁</h2>
       <div class="hero-btns">
         <button class="btn-main" onclick="syncAll()">同步全部</button>
+        <button class="btn-gray" onclick="discardAll()">取消本次變更</button>
         <button onclick="toggle()">收起</button>
       </div>
     </div>
@@ -374,6 +421,7 @@ input, select {
         <div>總額：<strong>$<span id="total">0</span></strong></div>
         <div>已付：<strong>$<span id="paidTotal">0</span></strong></div>
         <div>未付：<strong>$<span id="unpaidTotal">0</span></strong></div>
+        <div>待同步變更：<strong id="pendingCount">0</strong></div>
       </div>
 
       <div class="sync-status" id="syncStatus">目前狀態：已完成</div>
@@ -403,6 +451,14 @@ input, select {
   <div class="card">
     <div id="list"></div>
   </div>
+
+  <div class="card">
+    <div class="section-head">
+      <div class="section-title">本次變更記錄</div>
+      <div class="section-sub">只有按「同步全部」才會真的送出</div>
+    </div>
+    <div id="logBox" class="log-box"></div>
+  </div>
 </div>
 
 <div id="syncOverlay" class="sync-overlay">
@@ -414,7 +470,7 @@ input, select {
 </div>
 
 <div id="successPop" class="success-pop">
-  <div class="success-title">成功叼回</div>
+  <div class="success-title">成功同步</div>
   <div class="hearts">🩵 💗 🩵</div>
 </div>
 
@@ -423,6 +479,8 @@ const API = "https://script.google.com/macros/s/AKfycbwahAiG7COCHfCOITf1XoIWKdL-
 const PASSWORD = "12345678";
 
 let data = [];
+let originalData = [];
+let changeLogs = [];
 let successTimer = null;
 let dirty = false;
 let editingId = null;
@@ -430,6 +488,16 @@ let isSaving = false;
 
 function toggle() {
   document.getElementById("top").classList.toggle("hidden");
+}
+
+function nowStr() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function cloneDeep(obj) {
+  return JSON.parse(JSON.stringify(obj));
 }
 
 function normalizePaid(value) {
@@ -449,15 +517,62 @@ function normalizeItem(item) {
     note: item && item.note ? String(item.note) : "",
     date: item && item.date ? String(item.date) : "",
     paid: normalizePaid(item && item.paid),
-    createdAt: Number(item && item.createdAt || Date.now())
+    createdAt: Number(item && item.createdAt || Date.now()),
+    _deleted: !!(item && item._deleted),
+    _isNew: !!(item && item._isNew),
+    _modified: !!(item && item._modified)
   };
+}
+
+function getVisibleData() {
+  return data.filter(d => !d._deleted);
+}
+
+function getPendingCount() {
+  return changeLogs.length;
+}
+
+function addLog(action, text) {
+  changeLogs.unshift({
+    time: nowStr(),
+    action,
+    text
+  });
+  renderLogs();
+  updateStatus();
+}
+
+function clearLogs() {
+  changeLogs = [];
+  renderLogs();
+  updateStatus();
+}
+
+function renderLogs() {
+  const box = document.getElementById("logBox");
+  if (!changeLogs.length) {
+    box.innerHTML = `<div class="empty-box">目前沒有待同步的變更</div>`;
+    return;
+  }
+
+  box.innerHTML = changeLogs.map(log => `
+    <div class="log-item">
+      <div><span class="log-action">${escapeHtml(log.action)}</span>${escapeHtml(log.text)}</div>
+      <div class="log-time">${escapeHtml(log.time)}</div>
+    </div>
+  `).join("");
 }
 
 function toggleDirty(flag = true) {
   dirty = flag;
-  document.getElementById("syncStatus").innerText = flag
-    ? "目前狀態：有未同步變更"
+  updateStatus();
+}
+
+function updateStatus() {
+  document.getElementById("syncStatus").innerText = dirty
+    ? `目前狀態：有未同步變更（${getPendingCount()} 筆）`
     : "目前狀態：已同步完成";
+  document.getElementById("pendingCount").innerText = getPendingCount();
 }
 
 function showSync(text = "小豬同步中...") {
@@ -492,9 +607,11 @@ async function load() {
     const json = await res.json();
 
     data = (json.items || []).map(normalizeItem);
-    render();
+    originalData = cloneDeep(data);
     dirty = false;
     editingId = null;
+    clearLogs();
+    render();
     hideSync("目前狀態：已同步完成");
     showSuccess();
   } catch (err) {
@@ -511,10 +628,11 @@ function render() {
   let paidTotal = 0;
   let unpaidTotal = 0;
 
-  const unpaidData = data.filter(d => !d.paid);
-  const paidData = data.filter(d => d.paid);
+  const visibleData = getVisibleData();
+  const unpaidData = visibleData.filter(d => !d.paid);
+  const paidData = visibleData.filter(d => d.paid);
 
-  data.forEach(d => {
+  visibleData.forEach(d => {
     const amount = Number(d.amount || 0);
     total += amount;
     if (d.paid) paidTotal += amount;
@@ -524,12 +642,14 @@ function render() {
   list.innerHTML = `
     ${renderSection("未付", unpaidData, false)}
     ${renderSection("已付", paidData, true)}
+    ${renderDeletedSection()}
   `;
 
-  document.getElementById("count").innerText = data.length;
+  document.getElementById("count").innerText = visibleData.length;
   document.getElementById("total").innerText = total.toLocaleString();
   document.getElementById("paidTotal").innerText = paidTotal.toLocaleString();
   document.getElementById("unpaidTotal").innerText = unpaidTotal.toLocaleString();
+  updateStatus();
 }
 
 function renderSection(title, arr, isPaid) {
@@ -545,6 +665,45 @@ function renderSection(title, arr, isPaid) {
           ? arr.map(d => renderItem(d, isPaid)).join("")
           : `<div class="empty-box">${title}區目前沒有項目</div>`
       }
+    </div>
+  `;
+}
+
+function renderDeletedSection() {
+  const deleted = data.filter(d => d._deleted);
+  if (!deleted.length) return "";
+
+  return `
+    <div class="section-block">
+      <div class="section-head">
+        <div class="section-title">待刪除</div>
+        <div class="section-sub">${deleted.length} 筆｜同步後才真的刪除</div>
+      </div>
+      ${deleted.map(d => renderDeletedItem(d)).join("")}
+    </div>
+  `;
+}
+
+function renderDeletedItem(d) {
+  const safeId = JSON.stringify(String(d.id));
+  return `
+    <div class="item deleted-item">
+      <div class="item-left">
+        <div class="item-name">
+          ${escapeHtml(d.name || "")}
+          <span class="badge">${escapeHtml(d.type || "")}</span>
+          <span class="badge pending-tag">待刪除</span>
+        </div>
+        <div class="item-sub">
+          <span>金額：$${Number(d.amount || 0).toLocaleString()}</span>
+          ${d.date ? `<span>日期：${escapeHtml(d.date)}</span>` : `<span>日期：—</span>`}
+          ${d.note ? `<span class="note-box">備註：${escapeHtml(d.note)}</span>` : ``}
+        </div>
+      </div>
+
+      <div class="item-right">
+        <button class="btn-cancel" onclick='undoDelete(${safeId})'>取消刪除</button>
+      </div>
     </div>
   `;
 }
@@ -569,7 +728,7 @@ function renderItem(d, isPaid) {
               <input id="edit-paid-${d.id}" type="checkbox" ${d.paid ? 'checked' : ''}>
               已付
             </label>
-            <button class="btn-save" onclick='saveEdit(${safeId})'>儲存</button>
+            <button class="btn-save" onclick='saveEdit(${safeId})'>套用</button>
             <button class="btn-cancel" onclick="cancelEdit()">取消</button>
           </div>
           <div style="margin-top:10px;">
@@ -587,6 +746,8 @@ function renderItem(d, isPaid) {
           ${escapeHtml(d.name || "")}
           <span class="badge">${escapeHtml(d.type || "")}</span>
           <span class="badge ${isPaid ? 'paid-tag' : 'unpaid-tag'}">${isPaid ? '已付' : '未付'}</span>
+          ${d._isNew ? `<span class="badge pending-tag">新增待同步</span>` : ``}
+          ${d._modified ? `<span class="badge pending-tag">修改待同步</span>` : ``}
         </div>
         <div class="item-sub">
           <span>金額：$${Number(d.amount || 0).toLocaleString()}</span>
@@ -601,7 +762,7 @@ function renderItem(d, isPaid) {
           已付
         </label>
         <button class="btn-edit" onclick='startEdit(${safeId})'>編輯</button>
-        <button class="btn-del" onclick='delItemById(${safeId})'>刪除</button>
+        <button class="btn-del" onclick='markDelete(${safeId})'>刪除</button>
       </div>
     </div>
   `;
@@ -618,7 +779,7 @@ function add() {
   if (!name) return alert("請填名稱");
   if (Number.isNaN(money)) return alert("請填金額");
 
-  data.unshift(normalizeItem({
+  const newItem = normalizeItem({
     id: String(Date.now() + Math.floor(Math.random() * 1000)),
     name,
     amount: money,
@@ -626,10 +787,13 @@ function add() {
     date,
     note,
     paid,
-    createdAt: Date.now()
-  }));
+    createdAt: Date.now(),
+    _isNew: true
+  });
 
+  data.unshift(newItem);
   toggleDirty(true);
+  addLog("新增", `新增「${name}」$${Number(money).toLocaleString()}`);
   render();
 
   document.getElementById("name").value = "";
@@ -640,26 +804,38 @@ function add() {
   document.getElementById("paidInput").checked = false;
 }
 
-async function delItemById(id) {
-  data = data.filter(d => String(d.id) !== String(id));
-  if (String(editingId) === String(id)) editingId = null;
-  toggleDirty(true);
-  render();
+function markDelete(id) {
+  const target = data.find(d => String(d.id) === String(id));
+  if (!target) return;
 
-  await save();
-  await load();
+  target._deleted = true;
+  target._modified = true;
+  if (String(editingId) === String(id)) editingId = null;
+
+  toggleDirty(true);
+  addLog("刪除", `標記刪除「${target.name}」`);
+  render();
 }
 
-async function togglePaidById(id, checked) {
+function undoDelete(id) {
+  const target = data.find(d => String(d.id) === String(id));
+  if (!target) return;
+
+  target._deleted = false;
+  toggleDirty(true);
+  addLog("取消刪除", `取消刪除「${target.name}」`);
+  render();
+}
+
+function togglePaidById(id, checked) {
   const target = data.find(d => String(d.id) === String(id));
   if (!target) return;
 
   target.paid = checked;
+  target._modified = true;
   toggleDirty(true);
+  addLog("已付狀態", `「${target.name}」改成${checked ? "已付" : "未付"}`);
   render();
-
-  await save();
-  await load();
 }
 
 function startEdit(id) {
@@ -672,7 +848,7 @@ function cancelEdit() {
   render();
 }
 
-async function saveEdit(id) {
+function saveEdit(id) {
   const target = data.find(d => String(d.id) === String(id));
   if (!target) return;
 
@@ -692,13 +868,27 @@ async function saveEdit(id) {
   target.date = date;
   target.note = note;
   target.paid = paid;
+  target._modified = true;
 
   editingId = null;
   toggleDirty(true);
+  addLog("編輯", `更新「${name}」`);
   render();
+}
 
-  await save();
-  await load();
+function discardAll() {
+  if (!dirty) {
+    alert("目前沒有未同步變更");
+    return;
+  }
+
+  if (!confirm("要取消本次所有未同步變更嗎？")) return;
+
+  data = cloneDeep(originalData).map(normalizeItem);
+  editingId = null;
+  dirty = false;
+  clearLogs();
+  render();
 }
 
 async function syncAll() {
@@ -706,12 +896,25 @@ async function syncAll() {
     alert("目前沒有需要同步的變更");
     return;
   }
-  await save();
+
+  const payload = data
+    .filter(d => !d._deleted)
+    .map(d => ({
+      id: d.id,
+      name: d.name,
+      amount: d.amount,
+      type: d.type,
+      date: d.date,
+      note: d.note,
+      paid: d.paid,
+      createdAt: d.createdAt
+    }));
+
+  await save(payload);
   await load();
-  dirty = false;
 }
 
-async function save() {
+async function save(payload) {
   if (isSaving) return;
   isSaving = true;
 
@@ -725,7 +928,7 @@ async function save() {
       body: JSON.stringify({
         action: "save",
         password: PASSWORD,
-        items: data
+        items: payload
       })
     });
 
