@@ -43,17 +43,23 @@ button {
 
 .hidden { display:none; }
 
-input,select {
+input, select {
   padding:10px;
   border-radius:10px;
   border:1px solid #ccc;
   width:100%;
+  box-sizing:border-box;
 }
 
 .form {
   display:flex;
   gap:10px;
   margin-top:10px;
+  flex-wrap:wrap;
+}
+
+.form > * {
+  flex:1 1 150px;
 }
 
 .card {
@@ -66,10 +72,33 @@ input,select {
 .item {
   display:flex;
   justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
   padding:10px;
   border-bottom:1px solid #eee;
 }
 
+.item-left {
+  flex:1;
+}
+
+.item-name {
+  font-weight:bold;
+}
+
+.item-note {
+  margin-top:4px;
+  font-size:13px;
+  color:#666;
+  white-space:pre-wrap;
+}
+
+.item-right {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  white-space:nowrap;
+}
 </style>
 </head>
 
@@ -77,37 +106,37 @@ input,select {
 
 <div class="wrap">
 
-<div class="hero">
-  <div class="hero-top">
-    <h2>🐷 管理頁</h2>
-    <button onclick="toggle()">收起</button>
-  </div>
+  <div class="hero">
+    <div class="hero-top">
+      <h2>🐷 管理頁</h2>
+      <button onclick="toggle()">收起</button>
+    </div>
 
-  <div id="top">
-    <div>總筆數：<span id="count">0</span></div>
-    <div>總額：$<span id="total">0</span></div>
+    <div id="top">
+      <div>總筆數：<span id="count">0</span></div>
+      <div>總額：$<span id="total">0</span></div>
 
-    <div class="form">
-      <input id="name" placeholder="名稱">
-      <input id="money" type="number" placeholder="金額">
-      <select id="type">
-        <option>商品</option>
-        <option>匯款</option>
-        <option>其他</option>
-      </select>
-      <button class="btn-main" onclick="add()">新增</button>
+      <div class="form">
+        <input id="name" placeholder="名稱">
+        <input id="money" type="number" placeholder="金額">
+        <select id="type">
+          <option>商品</option>
+          <option>匯款</option>
+          <option>其他</option>
+        </select>
+        <input id="note" placeholder="備註（可不填）">
+        <button class="btn-main" onclick="add()">新增</button>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="card">
-  <div id="list"></div>
-</div>
+  <div class="card">
+    <div id="list"></div>
+  </div>
 
 </div>
 
 <script>
-
 const API = "https://script.google.com/macros/s/AKfycbwahAiG7COCHfCOITf1XoIWKdL-pWHLvYlmMxPEDrlndD8r3pxTQupZQKboOklVCfA3jQ/exec";
 const PASSWORD = "12345678";
 
@@ -118,7 +147,7 @@ function toggle(){
 }
 
 async function load(){
-  let res = await fetch(API+"?action=get");
+  let res = await fetch(API + "?action=get");
   let json = await res.json();
   data = json.items || [];
   render();
@@ -130,19 +159,20 @@ function render(){
 
   let total = 0;
 
-  data.forEach((d,i)=>{
-    total += d.amount;
+  data.forEach((d, i) => {
+    total += Number(d.amount) || 0;
 
     list.innerHTML += `
-    <div class="item">
-      <div>
-        ${d.name} (${d.type})
+      <div class="item">
+        <div class="item-left">
+          <div class="item-name">${d.name} (${d.type})</div>
+          ${d.note ? `<div class="item-note">備註：${d.note}</div>` : ""}
+        </div>
+        <div class="item-right">
+          <span>$${d.amount}</span>
+          <button class="btn-del" onclick="del(${i})">刪</button>
+        </div>
       </div>
-      <div>
-        $${d.amount}
-        <button onclick="del(${i})">刪</button>
-      </div>
-    </div>
     `;
   });
 
@@ -151,43 +181,50 @@ function render(){
 }
 
 async function add(){
-  let name = document.getElementById("name").value;
+  let name = document.getElementById("name").value.trim();
   let money = Number(document.getElementById("money").value);
   let type = document.getElementById("type").value;
+  let note = document.getElementById("note").value.trim();
 
   if(!name) return alert("填名稱");
 
   data.unshift({
     id: Date.now(),
     name,
-    amount: money,
+    amount: money || 0,
     type,
+    note,
     createdAt: Date.now()
   });
 
   await save();
+
+  document.getElementById("name").value = "";
+  document.getElementById("money").value = "";
+  document.getElementById("note").value = "";
+  document.getElementById("type").value = "商品";
+
   load();
 }
 
 async function del(i){
-  data.splice(i,1);
+  data.splice(i, 1);
   await save();
   load();
 }
 
 async function save(){
-  await fetch(API,{
-    method:"POST",
+  await fetch(API, {
+    method: "POST",
     body: JSON.stringify({
-      action:"save",
-      password:PASSWORD,
-      items:data
+      action: "save",
+      password: PASSWORD,
+      items: data
     })
   });
 }
 
 load();
-
 </script>
 
 </body>
